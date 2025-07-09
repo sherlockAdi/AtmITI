@@ -25,6 +25,20 @@ app.use(cors({
   origin: '*',
   credentials: true, // Note: credentials can't be used with origin: '*'
 }));
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://unpkg.com"],
+      workerSrc: ["'self'", "blob:"],
+      objectSrc: ["'none'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // if using inline styles
+      imgSrc: ["'self'", "data:"], // if using base64 images
+      connectSrc: ["'self'"], // allow API calls
+    },
+  })
+);
+
 
 // Rate limiting
 const limiter = rateLimit({
