@@ -17,58 +17,58 @@ const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const HOST = 'localhost'; // your specific IP
+const HOST = 'localhost';
 
-// Security middleware
+// ===== 🌐 Security Headers for Blob + PDF.js =====
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  next();
+});
+
+// ===== 🛡️ Helmet + CSP =====
 app.use(helmet());
-app.use(cors({
-  origin: '*',
-  credentials: true, // Note: credentials can't be used with origin: '*'
-}));
+
+// Updated CSP for blob and PDF rendering
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
-      defaultSrc: ["'self'"],
+      defaultSrc: ["'self'", "blob:"],
       scriptSrc: ["'self'", "https://unpkg.com"],
       workerSrc: ["'self'", "blob:"],
       objectSrc: ["'none'"],
-      styleSrc: ["'self'", "'unsafe-inline'"], // if using inline styles
-      imgSrc: ["'self'", "data:"], // if using base64 images
-      connectSrc: ["'self'"], // allow API calls
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'self'", "blob:"],
     },
   })
 );
 
+// ===== 🔓 CORS =====
+app.use(cors({
+  origin: '*',
+  credentials: true, // note: with origin '*' credentials doesn't take effect
+}));
 
-// Rate limiting
+// ===== 🛡️ Rate Limiting =====
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 });
 app.use('/api/', limiter);
 
-// Basic middleware
+// ===== 🔧 Middleware =====
 app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// ===== 📦 Serve Static Files (Vite Build) =====
 const path = require('path');
-
-// Serve static files from Vite build
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Catch-all: Serve frontend for non-API routes
-// app.get('*', (req, res) => {
-//   if (!req.path.startsWith('/api')) {
-//     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-//   } else {
-//     res.status(404).json({ error: 'API route not found' });
-//   }
-// });
-
-
-// Routes
+// ===== 📁 Routes =====
 app.use('/api/auth', authRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/admin', adminRoutes);
@@ -76,12 +76,12 @@ app.use('/api/master', masterRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/files', filesRoutes);
 
-// Health check endpoint
+// ===== 🔍 Health Check =====
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Catch-all: Serve frontend for non-API routes
+// ===== 🔁 Catch-All for Frontend Routing =====
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -90,20 +90,17 @@ app.get('*', (req, res) => {
   }
 });
 
-// Error handling middleware
+// ===== 🧯 Error Handling =====
 app.use(errorHandler);
 
-
-// Error handling middleware
-app.use(errorHandler);
-
+// ===== 🛠️ Log Registered Routes (Optional Debugging) =====
 app._router.stack.forEach(r => {
   if (r.route && r.route.path) {
     console.log(r.route.path);
   }
 });
 
-// Initialize database and start server
+// ===== 🚀 Start Server =====
 initializeDatabase()
   .then(() => {
     app.listen(PORT, () => {
