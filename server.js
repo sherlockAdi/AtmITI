@@ -39,11 +39,12 @@ app.use(
       objectSrc: ["'none'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "blob:"], // ✅ Add blob: here!
       frameSrc: ["'self'", "blob:"],
     },
   })
 );
+
 
 // ===== 🔓 CORS =====
 app.use(cors({
